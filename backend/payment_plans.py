@@ -232,6 +232,30 @@ class PaymentPlans:
         except ValueError:
             pass
         return None
+    
+    @classmethod
+    def _check_guest_daily_limit(cls) -> bool:
+        """Check daily limit for guest users using session state"""
+        try:
+            if 'guest_usage' not in session_state._data:
+                session_state['guest_usage'] = {
+                    'date': datetime.now().strftime('%Y-%m-%d'),
+                    'count': 0
+                }
+            
+            today = datetime.now().strftime('%Y-%m-%d')
+            if session_state['guest_usage']['date'] != today:
+                # Reset counter for new day
+                session_state['guest_usage'] = {
+                    'date': today,
+                    'count': 0
+                }
+            
+            # Check limit (5 for free tier)
+            return session_state['guest_usage']['count'] < 5
+        except:
+            # Fallback - allow analysis
+            return True
 
 class UsageTracker:
     """Track usage for billing and limits"""
