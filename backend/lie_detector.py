@@ -9,7 +9,12 @@ import os
 class LieDetector:
     def __init__(self):
         """Initialize lie detector with deception analysis patterns"""
-        self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if api_key:
+            self.client = OpenAI(api_key=api_key)
+        else:
+            self.client = None
+            print("⚠️  OpenAI API key not found. Lie detection will use basic pattern matching.")
         
         # Micro-expression patterns associated with deception
         self.deception_indicators = {
