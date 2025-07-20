@@ -8,7 +8,7 @@ import {
   ClockIcon,
   EyeIcon,
   StarIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   CalendarIcon
 } from '@heroicons/react/24/outline';
 
