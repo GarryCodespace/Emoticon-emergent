@@ -1,11 +1,28 @@
 """
-Payment Plans Configuration for Emoticon App
-Defines subscription tiers and pricing structure
+Optimized Payment Plans and Usage Tracking System
+Enhanced for FastAPI backend with better guest user support
 """
-
 import streamlit as st
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
+import json
+
+# Mock session state for non-Streamlit environment
+class MockSessionState:
+    def __init__(self):
+        self._data = {}
+    
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+    
+    def __setitem__(self, key, value):
+        self._data[key] = value
+    
+    def __contains__(self, key):
+        return key in self._data
+
+# Global session state for development
+session_state = MockSessionState()
 
 class PaymentPlans:
     """Payment plans configuration and management"""
