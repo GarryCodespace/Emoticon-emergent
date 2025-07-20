@@ -232,7 +232,7 @@ async def analyze_video(
         
         # Check daily usage limit
         user_id = current_user['user_id'] if current_user else None
-        if not PaymentPlans.check_daily_limit_guest(user_id):
+        if not PaymentPlans.check_daily_limit(user_id):
             raise HTTPException(
                 status_code=429,
                 detail="Daily analysis limit reached. Please register or upgrade your plan."
