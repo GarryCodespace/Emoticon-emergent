@@ -169,7 +169,7 @@ class PaymentPlans:
         
         # Check current usage from session state
         # In production, this would check database
-        today_usage = st.session_state.get('daily_usage', 0)
+        today_usage = session_state.get('daily_usage', 0)
         return today_usage < daily_limit
     
     @staticmethod
