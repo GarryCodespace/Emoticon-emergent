@@ -281,6 +281,9 @@ class LieDetector:
                                  deception_analysis: Dict) -> str:
         """Get AI-powered deception analysis"""
         try:
+            if not self.client:
+                return "AI deception analysis unavailable: OpenAI API key not configured. Analysis based on pattern matching only."
+            
             # Prepare comprehensive input for AI analysis
             expressions_text = ", ".join(facial_expressions)
             body_patterns_text = ", ".join([p.get("pattern", "") for p in body_patterns])
