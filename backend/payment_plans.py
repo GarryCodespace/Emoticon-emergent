@@ -228,7 +228,7 @@ class PaymentPlans:
     @staticmethod
     def reset_daily_usage():
         """Reset daily usage counter (call at midnight)"""
-        st.session_state.daily_usage = 0
+        session_state.daily_usage = 0
     
     @staticmethod
     def get_upgrade_suggestion(current_plan: str) -> Optional[str]:
