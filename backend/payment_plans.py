@@ -175,9 +175,9 @@ class PaymentPlans:
     @staticmethod
     def increment_usage():
         """Increment daily usage counter"""
-        if 'daily_usage' not in st.session_state:
-            st.session_state.daily_usage = 0
-        st.session_state.daily_usage += 1
+        if 'daily_usage' not in session_state:
+            session_state.daily_usage = 0
+        session_state.daily_usage += 1
     
     @staticmethod
     def check_lie_detection_limit(user_id: Optional[int] = None) -> bool:
