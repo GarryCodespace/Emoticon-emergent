@@ -25,6 +25,17 @@ class AIVisionAnalyzer:
     
     def analyze_facial_expressions(self, image) -> Dict:
         """Analyze facial expressions using OpenAI Vision API"""
+        if not self.client:
+            return {
+                "analysis": json.dumps({
+                    "facial_expressions": [],
+                    "body_language": [],
+                    "emotional_state": "error",
+                    "confidence_level": "low",
+                    "detailed_analysis": "AI analysis unavailable: OpenAI API key not configured. Please provide a valid OpenAI API key to enable AI-powered emotion analysis."
+                })
+            }
+        
         base64_image = self.encode_image(image)
         
         # First check if there's a face using MediaPipe
