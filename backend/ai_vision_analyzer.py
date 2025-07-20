@@ -1,123 +1,95 @@
-"""
-Enhanced AI Vision Analyzer for comprehensive emotion detection
-Optimized for FastAPI backend with better error handling
-"""
-import os
-import cv2
-import numpy as np
 import base64
-from io import BytesIO
-from typing import Dict, List, Any, Optional
+import cv2
+import json
 from openai import OpenAI
+import os
+from typing import Dict, List, Optional
 
 class AIVisionAnalyzer:
-    """Enhanced AI vision analysis with better performance"""
-    
     def __init__(self):
-        """Initialize OpenAI client"""
-        self.openai_api_key = os.environ.get("OPENAI_API_KEY")
-        if not self.openai_api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
-        
-        self.client = OpenAI(api_key=self.openai_api_key)
-        self.max_retries = 3
+        """Initialize AI Vision Analyzer with OpenAI GPT-4o"""
+        self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+        # do not change this unless explicitly requested by the user
+        self.model = "gpt-4o"
     
-    def _encode_image(self, image: np.ndarray) -> str:
-        """Convert OpenCV image to base64 string"""
-        # Resize image if too large for faster processing
-        height, width = image.shape[:2]
-        if width > 800 or height > 600:
-            scale = min(800/width, 600/height)
-            new_width = int(width * scale)
-            new_height = int(height * scale)
-            image = cv2.resize(image, (new_width, new_height))
-        
-        # Encode to JPEG with good quality/size balance
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]
-        _, buffer = cv2.imencode('.jpg', image, encode_param)
+    def encode_image(self, image) -> str:
+        """Encode OpenCV image to base64 string"""
+        _, buffer = cv2.imencode('.jpg', image)
         return base64.b64encode(buffer).decode('utf-8')
     
-    def analyze_facial_expressions(self, image: np.ndarray) -> Dict[str, Any]:
-        """Comprehensive facial expression analysis"""
-        try:
-            # Encode image
-            image_base64 = self._encode_image(image)
+    def analyze_facial_expressions(self, image) -> Dict:
+        """Analyze facial expressions using OpenAI Vision API"""
+        base64_image = self.encode_image(image)
+        
+        # First check if there's a face using MediaPipe
+        import mediapipe as mp
+        import cv2
+        
+        mp_face_detection = mp.solutions.face_detection
+        with mp_face_detection.FaceDetection(min_detection_confidence=0.6) as face_detection:
+            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            results = face_detection.process(rgb_image)
             
-            # Enhanced analysis prompt
-            prompt = """Analyze this image for facial expressions and emotions. Respond with JSON format:
+            if not results.detections:
+                # No face detected - return special analysis
+                return {
+                    "analysis": json.dumps({
+                        "facial_expressions": [],
+                        "body_language": [],
+                        "emotional_state": "no face detected",
+                        "deception_indicators": [],
+                        "confidence_level": "low",
+                        "detailed_analysis": "No face detected in the image. For accurate emotion analysis, please ensure: 1) You are clearly visible in the frame, 2) The image has good lighting, 3) Your face is not obscured by objects, hands, or shadows, 4) The camera is positioned at eye level for optimal detection. Try taking a new photo with better positioning and lighting conditions."
+                    })
+                }
+        
+        prompt = """Analyze this image for facial expressions and emotional states with HIGH SENSITIVITY. Look for even the most subtle expressions.
+
+CRITICAL: Only use "neutral" if the person shows absolutely zero emotional expression. Be highly sensitive to detect ANY emotional cues.
+
+1. FACIAL EXPRESSIONS: Identify specific micro-expressions like:
+   - Smile variations (genuine, forced, subtle, smirk)
+   - Frown, scowl, concern, or sadness expressions
+   - Eye expressions (squinting, wide eyes, eye contact, eye roll)
+   - Eyebrow positions (raised, furrowed, asymmetrical)
+   - Mouth expressions (open, pursed, bite lip, compressed)
+   - Cheek tension, forehead wrinkles, jaw position
+   - Overall emotional state (happy, sad, angry, surprised, fearful, disgusted, contempt)
+
+2. BODY LANGUAGE: Analyze posture and gestures:
+   - Arm positions (crossed, open, defensive, gesturing)
+   - Hand gestures and positioning
+   - Head position and tilt
+   - Shoulder positioning
+   - Overall body posture (confident, defensive, relaxed, tense)
+
+3. DECEPTION INDICATORS: Look for potential signs of deception:
+   - Micro-expressions that don't match overall expression
+   - Forced or fake smiles
+   - Defensive body language
+   - Hand-to-face touching
+   - Inconsistent expressions
+
+IMPORTANT: Be extremely observant and detect subtle emotions. Look for:
+- Slight mouth curves indicating happiness or sadness
+- Eyebrow micro-movements suggesting surprise or concern
+- Eye tension patterns indicating stress or focus
+- Head positioning suggesting confidence or submission
+
+Return a JSON object with:
 {
-    "facial_expressions": ["list of detected expressions"],
-    "emotional_state": "primary emotion",
+    "facial_expressions": ["expression1", "expression2", ...],
+    "body_language": ["pattern1", "pattern2", ...],
+    "emotional_state": "primary emotional state - be specific and avoid neutral",
+    "deception_indicators": ["indicator1", "indicator2", ...],
     "confidence_level": "high/medium/low",
-    "detailed_analysis": "detailed description",
-    "body_language": ["list of body language observations"]
-}
+    "detailed_analysis": "comprehensive analysis in 4-6 sentences describing what you actually observe, including psychological insights, emotional context, and behavioral interpretation"
+}"""
 
-Focus on:
-1. Micro-expressions in face
-2. Eye contact and gaze direction
-3. Mouth position and tension
-4. Eyebrow position
-5. Overall emotional state
-6. Confidence and stress indicators
-
-If no face is clearly visible, set emotional_state to "no face detected"."""
-            
-            # Make API call with retry logic
-            for attempt in range(self.max_retries):
-                try:
-                    response = self.client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "text", "text": prompt},
-                                    {
-                                        "type": "image_url",
-                                        "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}
-                                    }
-                                ]
-                            }
-                        ],
-                        response_format={"type": "json_object"},
-                        max_tokens=300,
-                        temperature=0.3
-                    )
-                    
-                    result = response.choices[0].message.content
-                    return self._parse_analysis_result(result)
-                    
-                except Exception as e:
-                    if attempt == self.max_retries - 1:
-                        raise e
-                    continue
-                    
-        except Exception as e:
-            return self._create_error_response(f"Analysis failed: {str(e)}")
-    
-    def analyze_emotion_context(self, image: np.ndarray, contexts: List[str]) -> Dict[str, Any]:
-        """Analyze emotions with specific context"""
         try:
-            image_base64 = self._encode_image(image)
-            context_text = " ".join(contexts)
-            
-            prompt = f"""Analyze this image for facial expressions and emotions in the context of: {context_text}
-
-Respond with JSON format:
-{{
-    "facial_expressions": ["list of detected expressions"],
-    "emotional_state": "primary emotion",
-    "confidence_level": "high/medium/low",
-    "detailed_analysis": "contextual analysis description",
-    "body_language": ["list of body language observations"],
-    "context_insights": "insights specific to the given context"
-}}
-
-Consider the specific context when analyzing emotions and provide relevant insights."""
-            
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model=self.model,
                 messages=[
                     {
                         "role": "user",
@@ -125,76 +97,167 @@ Consider the specific context when analyzing emotions and provide relevant insig
                             {"type": "text", "text": prompt},
                             {
                                 "type": "image_url",
-                                "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}
+                                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
                             }
                         ]
                     }
                 ],
                 response_format={"type": "json_object"},
-                max_tokens=400,
-                temperature=0.3
+                max_tokens=1500
             )
             
-            result = response.choices[0].message.content
-            return self._parse_analysis_result(result)
-            
-        except Exception as e:
-            return self._create_error_response(f"Context analysis failed: {str(e)}")
-    
-    def get_expression_confidence(self, expressions: List[str]) -> Dict[str, float]:
-        """Get confidence scores for detected expressions"""
-        # Mock confidence scores - in production, this would be more sophisticated
-        confidence_scores = {}
-        for expr in expressions:
-            if expr in ['smile', 'happy', 'joy']:
-                confidence_scores[expr] = 0.9
-            elif expr in ['frown', 'sad', 'anger']:
-                confidence_scores[expr] = 0.8
-            elif expr in ['surprise', 'shock']:
-                confidence_scores[expr] = 0.85
-            else:
-                confidence_scores[expr] = 0.7
-        
-        return confidence_scores
-    
-    def _parse_analysis_result(self, result_text: str) -> Dict[str, Any]:
-        """Parse and validate analysis result"""
-        try:
-            import json
-            result = json.loads(result_text)
-            
-            # Ensure required fields exist
-            required_fields = ['facial_expressions', 'emotional_state', 'confidence_level', 'detailed_analysis']
-            for field in required_fields:
-                if field not in result:
-                    result[field] = self._get_default_value(field)
-            
-            # Ensure body_language exists
-            if 'body_language' not in result:
-                result['body_language'] = []
-            
+            result = json.loads(response.choices[0].message.content)
             return result
             
-        except json.JSONDecodeError:
-            return self._create_error_response("Failed to parse analysis result")
+        except Exception as e:
+            return {
+                "facial_expressions": [],
+                "body_language": [],
+                "emotional_state": "unknown",
+                "deception_indicators": [],
+                "confidence_level": "low",
+                "detailed_analysis": f"Analysis error: {str(e)}"
+            }
     
-    def _get_default_value(self, field: str) -> Any:
-        """Get default value for missing fields"""
-        defaults = {
-            'facial_expressions': [],
-            'emotional_state': 'neutral',
-            'confidence_level': 'low',
-            'detailed_analysis': 'Unable to analyze expressions',
-            'body_language': []
-        }
-        return defaults.get(field, '')
+    def analyze_emotion_context(self, image, context: List[str]) -> Dict:
+        """Get contextual emotional analysis with user-provided scenario"""
+        base64_image = self.encode_image(image)
+        
+        # First check if there's a face using MediaPipe
+        import mediapipe as mp
+        import cv2
+        
+        mp_face_detection = mp.solutions.face_detection
+        with mp_face_detection.FaceDetection(min_detection_confidence=0.6) as face_detection:
+            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            results = face_detection.process(rgb_image)
+            
+            if not results.detections:
+                # No face detected - return contextual no-face analysis
+                scenario_context = context[0] if context else ""
+                return {
+                    "facial_expressions": [],
+                    "body_language": [],
+                    "emotional_state": "no face detected",
+                    "confidence_level": "low",
+                    "detailed_analysis": f"No face detected in the image for context: {scenario_context}. For accurate emotion analysis in this scenario, please ensure: 1) You are clearly visible in the frame, 2) The image has good lighting, 3) Your face is not obscured by objects, hands, or shadows, 4) The camera is positioned at eye level for optimal detection. Try taking a new photo with better positioning and lighting conditions."
+                }
+        
+        scenario_context = context[0] if context else ""
+        
+        prompt = f"""Analyze this image for facial expressions and emotions with the following context: {scenario_context}
+
+Provide detailed analysis focusing on:
+- Specific facial expressions and micro-expressions
+- Body language patterns visible
+- Emotional state relevant to the given context
+- Confidence levels and authenticity
+- Stress or anxiety indicators
+- Overall psychological assessment for this scenario
+
+Return a JSON object with:
+{{
+    "facial_expressions": ["expression1", "expression2", ...],
+    "body_language": ["pattern1", "pattern2", ...],
+    "emotional_state": "primary emotional state - be specific and avoid neutral",
+    "confidence_level": "high/medium/low",
+    "detailed_analysis": "comprehensive analysis in 4-6 sentences describing what you observe in relation to the context, including psychological insights, emotional patterns, and behavioral interpretation"
+}}"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                            }
+                        ]
+                    }
+                ],
+                response_format={"type": "json_object"},
+                max_tokens=1500
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return result
+            
+        except Exception as e:
+            return {
+                "facial_expressions": [],
+                "body_language": [],
+                "emotional_state": "unknown",
+                "confidence_level": "low",
+                "detailed_analysis": f"Context analysis error: {str(e)}"
+            }
     
-    def _create_error_response(self, error_message: str) -> Dict[str, Any]:
-        """Create standardized error response"""
-        return {
-            'facial_expressions': [],
-            'emotional_state': 'error',
-            'confidence_level': 'low',
-            'detailed_analysis': error_message,
-            'body_language': []
-        }
+    def analyze_deception_probability(self, image, detected_indicators: List[str]) -> Dict:
+        """Analyze deception probability using AI vision"""
+        base64_image = self.encode_image(image)
+        
+        prompt = f"""Analyze this image for deception indicators. Current detected indicators: {', '.join(detected_indicators)}
+
+Assess the likelihood of deception based on:
+1. Facial micro-expressions and authenticity
+2. Body language and defensive postures
+3. Inconsistencies between facial expressions and body language
+4. Overall behavioral patterns
+
+Return a JSON object with:
+{{
+    "deception_probability": 0.0-1.0,
+    "confidence_level": "low/medium/high",
+    "key_indicators": ["indicator1", "indicator2", ...],
+    "risk_assessment": "low/medium/high",
+    "interpretation": "comprehensive 4-6 sentence explanation of behavioral patterns, psychological insights, and deception assessment with specific reasoning"
+}}"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                            }
+                        ]
+                    }
+                ],
+                response_format={"type": "json_object"},
+                max_tokens=800
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return result
+            
+        except Exception as e:
+            return {
+                "deception_probability": 0.0,
+                "confidence_level": "low",
+                "key_indicators": [],
+                "risk_assessment": "low",
+                "interpretation": f"Analysis error: {str(e)}"
+            }
+    
+    def analyze_video_frame(self, frame) -> Dict:
+        """Analyze a single video frame"""
+        return self.analyze_facial_expressions(frame)
+    
+    def get_expression_confidence(self, expressions: List[str]) -> Dict:
+        """Generate confidence scores for detected expressions"""
+        confidence_scores = {}
+        for expr in expressions:
+            # Simulate confidence based on expression complexity
+            if any(word in expr.lower() for word in ['smile', 'frown', 'happy', 'sad']):
+                confidence_scores[expr] = 0.8 + (hash(expr) % 20) / 100
+            else:
+                confidence_scores[expr] = 0.6 + (hash(expr) % 30) / 100
+        return confidence_scores
