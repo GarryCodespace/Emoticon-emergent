@@ -263,8 +263,8 @@ class UsageTracker:
     @staticmethod
     def track_analysis(analysis_type: str, user_id: Optional[int] = None):
         """Track an analysis for billing purposes"""
-        if 'usage_log' not in st.session_state:
-            st.session_state.usage_log = []
+        if 'usage_log' not in session_state._data:
+            session_state['usage_log'] = []
         
         usage_entry = {
             'type': analysis_type,
@@ -273,7 +273,7 @@ class UsageTracker:
             'plan': PaymentPlans.get_user_plan(user_id)
         }
         
-        st.session_state.usage_log.append(usage_entry)
+        session_state['usage_log'].append(usage_entry)
         PaymentPlans.increment_usage()
     
     @staticmethod
