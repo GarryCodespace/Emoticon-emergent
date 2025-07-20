@@ -8,7 +8,12 @@ from typing import Dict, List, Optional
 class AIVisionAnalyzer:
     def __init__(self):
         """Initialize AI Vision Analyzer with OpenAI GPT-4o"""
-        self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.openai_api_key = os.environ.get("OPENAI_API_KEY")
+        if self.openai_api_key:
+            self.client = OpenAI(api_key=self.openai_api_key)
+        else:
+            self.client = None
+            print("⚠️  OpenAI API key not found. AI vision analysis will be limited.")
         # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
         # do not change this unless explicitly requested by the user
         self.model = "gpt-4o"
