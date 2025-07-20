@@ -279,7 +279,7 @@ class UsageTracker:
     @staticmethod
     def get_usage_stats(user_id: Optional[int] = None) -> Dict:
         """Get usage statistics for current user"""
-        if 'usage_log' not in st.session_state:
+        if 'usage_log' not in session_state._data:
             return {'total': 0, 'today': 0, 'this_week': 0, 'this_month': 0}
         
         now = datetime.now()
@@ -287,7 +287,7 @@ class UsageTracker:
         week_start = today_start - timedelta(days=now.weekday())
         month_start = today_start.replace(day=1)
         
-        usage_log = st.session_state.usage_log
+        usage_log = session_state.get('usage_log', [])
         
         stats = {
             'total': len(usage_log),
