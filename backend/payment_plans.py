@@ -214,9 +214,9 @@ class PaymentPlans:
     @staticmethod
     def increment_lie_detection():
         """Increment daily lie detection counter"""
-        if 'daily_lie_detections' not in st.session_state:
-            st.session_state.daily_lie_detections = 0
-        st.session_state.daily_lie_detections += 1
+        if 'daily_lie_detections' not in session_state:
+            session_state.daily_lie_detections = 0
+        session_state.daily_lie_detections += 1
     
     @staticmethod
     def increment_stress_detection():
