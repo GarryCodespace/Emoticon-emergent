@@ -43,6 +43,9 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('emoticon_user');
             console.log('Token validation failed, user logged out');
           }
+        } else {
+          // No token - user is not logged in, which is fine for guest access
+          console.log('No authentication token found - continuing as guest');
         }
       } catch (error) {
         console.error('Error loading user:', error);
