@@ -23,6 +23,9 @@ def analyze_expression(event_text):
         str: AI-generated emotional analysis and interpretation
     """
     try:
+        if not client:
+            return "AI analysis unavailable: OpenAI API key not configured. The detected expressions show various emotional indicators that could be analyzed with proper API access."
+        
         # Check if body language patterns are included
         body_language_patterns = [
             "crossed_arms", "hands_on_hips", "arms_open", "defensive_posture", 
