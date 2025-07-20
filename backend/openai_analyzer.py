@@ -6,10 +6,11 @@ from openai import OpenAI
 
 # Initialize OpenAI client with API key from environment
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is required")
-
-client = OpenAI(api_key=OPENAI_API_KEY)
+if OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+else:
+    client = None
+    print("⚠️  OpenAI API key not found. AI analysis features will be limited.")
 
 def analyze_expression(event_text):
     """
