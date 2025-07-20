@@ -2,7 +2,6 @@
 Optimized Payment Plans and Usage Tracking System
 Enhanced for FastAPI backend with better guest user support
 """
-import streamlit as st
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import json
