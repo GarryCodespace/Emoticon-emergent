@@ -450,7 +450,7 @@ async def get_usage_limits(current_user: Optional[Dict] = Depends(get_current_us
         "plan": current_plan,
         "limits": limits,
         "usage": usage_stats,
-        "can_analyze": PaymentPlans.check_daily_limit_guest(user_id)
+        "can_analyze": PaymentPlans.check_daily_limit(user_id)
     })
 
 # WebSocket for live camera analysis (to fix the live recording issue)
