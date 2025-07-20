@@ -18,6 +18,15 @@ class MockSessionState:
     def __setitem__(self, key, value):
         self._data[key] = value
     
+    def __getattr__(self, key):
+        return self._data.get(key)
+    
+    def __setattr__(self, key, value):
+        if key == '_data':
+            super().__setattr__(key, value)
+        else:
+            self._data[key] = value
+    
     def __contains__(self, key):
         return key in self._data
 
