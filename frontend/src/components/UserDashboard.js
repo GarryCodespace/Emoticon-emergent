@@ -164,7 +164,7 @@ const UserDashboard = () => {
                 <p className="text-3xl font-bold text-gray-900">{stats.usage?.total || 0}</p>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <TrendingUpIcon className="w-6 h-6 text-orange-600" />
+                <ArrowTrendingUpIcon className="w-6 h-6 text-orange-600" />
               </div>
             </div>
           </div>
