@@ -208,7 +208,7 @@ class PaymentPlans:
             return False
         
         # Check current usage from session state
-        today_usage = st.session_state.get('daily_stress_detections', 0)
+        today_usage = session_state.get('daily_stress_detections', 0)
         return today_usage < daily_limit
     
     @staticmethod
